@@ -1,0 +1,125 @@
+
+이 Python 코드는 Windows 환경에서 특정 PDF 파일을 **지정한 프린터로 자동 인쇄**하는 스크립트입니다. 아래에 한 줄씩 차근차근 설명드립니다.
+
+---
+
+📌 1. 모듈 임포트
+
+```python
+import win32api
+import win32print
+import os
+```
+
+- `win32api`, `win32print`: Windows 전용 API에 접근할 수 있게 해주는 PyWin32 모듈입니다.
+  - `win32print`: 프린터 설정 등 프린터 관련 기능 제공
+  - `win32api.ShellExecute`: 외부 프로그램 실행 (여기서는 기본 PDF 뷰어로 "인쇄" 명령 전달)
+- `os`: 파일 존재 여부 확인용
+
+---
+
+📌 2. 인쇄할 PDF 경로 및 프린터 이름 지정
+
+```python
+pdf_path = r"C:\Users\woo.jihun\Desktop\Skywalker\20250507161350_resized.pdf"
+printer_name = "事務所"
+```
+
+- `pdf_path`: 인쇄하려는 PDF 파일 경로입니다. `r"..."`는 **raw 문자열**로 백슬래시 `\`를 이스케이프하지 않게 해줍니다.
+- `printer_name`: 사용자가 지정한 프린터 이름 (예: "事務所" 프린터로 출력)
+
+---
+
+📌 3. 파일 존재 여부 확인
+
+```python
+if not os.path.exists(pdf_path):
+    print("指定されたPDFが存在しません。")
+```
+
+- 지정한 경로에 PDF 파일이 없으면 에러 메시지를 출력하고 종료합니다.
+
+---
+
+📌 4. 사용자에게 인쇄 확인 요청
+
+```python
+else:
+    confirm = input("印刷しますか？（Y/N）: ").strip().lower()
+```
+
+- 사용자에게 인쇄 여부 확인 (`Y` 또는 `N`)
+- `strip()`으로 양쪽 공백 제거, `lower()`로 소문자화
+
+---
+
+📌 5. 인쇄 실행
+
+```python
+    if confirm == "y":
+```
+
+- 사용자가 `y`를 입력한 경우 인쇄 실행
+
+```python
+        current_printer = win32print.GetDefaultPrinter()
+```
+
+- 현재 기본 프린터를 백업해둠 (다시 원상복구할 목적)
+
+```python
+        win32print.SetDefaultPrinter(printer_name)
+```
+
+- 지정한 `"事務所"` 프린터를 **기본 프린터로 임시 설정**
+
+```python
+        win32api.ShellExecute(0, "print", pdf_path, None, ".", 0)
+```
+
+- 이 부분이 핵심입니다!
+  - Windows의 **기본 PDF 뷰어 (예: Edge 또는 Acrobat Reader)** 를 이용해 PDF 파일을 `"print"` 명령으로 실행합니다.
+  - 그 결과 PDF가 기본 프린터(= `"事務所"`로 임시 설정된 프린터)로 인쇄됩니다.
+
+```python
+        win32print.SetDefaultPrinter(current_printer)  # 元に戻す
+```
+
+- 인쇄 후 **원래의 기본 프린터로 복구**
+
+```python
+        print(f"'{printer_name}' に印刷しました。")
+```
+
+- 인쇄 성공 메시지 출력
+
+---
+
+📌 6. 취소 처리 및 예외 처리
+
+```python
+    else:
+        print("印刷はキャンセルされました。")
+```
+
+- 사용자가 `y` 이외의 것을 입력하면 인쇄를 취소합니다.
+
+```python
+    except Exception as e:
+        print(f"印刷失敗: {e}")
+```
+
+- 인쇄 도중 문제가 발생한 경우 예외 메시지를 출력합니다.
+
+---
+
+✅ 정리 요약
+
+| 역할 | 설명 |
+|------|------|
+| PDF 파일 존재 확인 | `os.path.exists()` 사용 |
+| 사용자 확인 | `input()`으로 확인 후 진행 |
+| 프린터 변경 | `SetDefaultPrinter()`로 일시 변경 후 인쇄 |
+| 인쇄 실행 | `ShellExecute()`로 OS에 인쇄 명령 전달 |
+| 복구 | 기본 프린터를 원래대로 돌림 |
+
